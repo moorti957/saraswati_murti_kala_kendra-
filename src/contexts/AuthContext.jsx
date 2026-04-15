@@ -13,13 +13,15 @@ export const AuthProvider = ({ children }) => {
   const { showToast } = useToast()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [wishlist, setWishlist] = useState([]) // reactive wishlist state
 
+  // Load user from localStorage on mount
   useEffect(() => {
-    // Check localStorage for existing session
     const storedUser = localStorage.getItem('saraswati_user')
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser))
+        const parsedUser = JSON.parse(storedUser)
+        setUser(parsedUser)
       } catch (e) {
         console.error('Failed to parse user', e)
       }
@@ -27,8 +29,24 @@ export const AuthProvider = ({ children }) => {
     setLoading(false)
   }, [])
 
-  const signup = async (name, email, password, phone) => {
-    // Simulate API call
+  // Load wishlist whenever user changes
+  useEffect(() => {
+    if (user) {
+      const savedWishlist = localStorage.getItem(`saraswati_wishlist_${user.id}`)
+      setWishlist(savedWishlist ? JSON.parse(savedWishlist) : [])
+    } else {
+      setWishlist([])
+    }
+  }, [user])
+
+  // Save wishlist to localStorage whenever it changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(`saraswati_wishlist_${user.id}`, JSON.stringify(wishlist))
+    }
+  }, [wishlist, user])
+
+  const signup = async (name, email, password) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         const existingUsers = JSON.parse(localStorage.getItem('saraswati_users') || '[]')
@@ -36,14 +54,17 @@ export const AuthProvider = ({ children }) => {
           reject('Email already registered')
           return
         }
-        const newUser = { id: Date.now(), name, email, phone, createdAt: new Date().toISOString() }
-        existingUsers.push({ ...newUser, password }) // In real app, hash password
+        const newUser = { id: Date.now(), name, email, createdAt: new Date().toISOString() }
+        existingUsers.push({ ...newUser, password })
         localStorage.setItem('saraswati_users', JSON.stringify(existingUsers))
-        
-        // Auto login after signup
+
+        // Initialize empty wishlist & orders
+        localStorage.setItem(`saraswati_wishlist_${newUser.id}`, JSON.stringify([]))
+        localStorage.setItem(`saraswati_orders_${newUser.id}`, JSON.stringify([]))
+
         setUser(newUser)
         localStorage.setItem('saraswati_user', JSON.stringify(newUser))
-        showToast('Account created successfully!', 'success')
+        showToast(`Welcome ${newUser.name}! Your account has been created.`, 'success')
         resolve(newUser)
       }, 800)
     })
@@ -73,7 +94,78 @@ export const AuthProvider = ({ children }) => {
     showToast('Logged out successfully', 'info')
   }
 
-  const value = { user, loading, signup, login, logout, isAuthenticated: !!user }
+  // Wishlist actions (reactive)
+  const addToWishlist = (product) => {
+    if (!user) {
+      showToast('Please login to add items to wishlist', 'info')
+      return false
+    }
+    if (!wishlist.find(item => item.id === product.id)) {
+      setWishlist(prev => [...prev, product])
+      showToast(`${product.name} added to wishlist ❤️`, 'success')
+      return true
+    }
+    return false
+  }
+
+  const removeFromWishlist = (productId) => {
+    const product = wishlist.find(item => item.id === productId)
+    if (product) {
+      setWishlist(prev => prev.filter(item => item.id !== productId))
+      showToast(`${product.name} removed from wishlist ❌`, 'info')
+      return true
+    }
+    return false
+  }
+
+  const toggleWishlist = (product) => {
+    if (!user) {
+      showToast('Please login to manage wishlist', 'info')
+      return false
+    }
+    const exists = wishlist.some(item => item.id === product.id)
+    if (exists) {
+      removeFromWishlist(product.id)
+      return false
+    } else {
+      addToWishlist(product)
+      return true
+    }
+  }
+
+  const isInWishlist = (productId) => {
+    return wishlist.some(item => item.id === productId)
+  }
+
+  // Orders (simplified)
+  const getOrders = () => {
+    if (!user) return []
+    const orders = localStorage.getItem(`saraswati_orders_${user.id}`)
+    return orders ? JSON.parse(orders) : []
+  }
+
+  const addOrder = (order) => {
+    if (!user) return
+    const orders = getOrders()
+    const newOrders = [order, ...orders]
+    localStorage.setItem(`saraswati_orders_${user.id}`, JSON.stringify(newOrders))
+  }
+
+  const value = {
+    user,
+    loading,
+    signup,
+    login,
+    logout,
+    isAuthenticated: !!user,
+    wishlist,           // reactive array
+    addToWishlist,
+    removeFromWishlist,
+    toggleWishlist,
+    isInWishlist,
+    getOrders,
+    addOrder
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

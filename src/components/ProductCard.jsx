@@ -1,10 +1,14 @@
 import { Heart } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../contexts/CartContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const ProductCard = ({ product, delay = 0 }) => {
   const navigate = useNavigate()
   const { addToCart } = useCart()
+  const { isInWishlist, toggleWishlist } = useAuth()
+
+  const isWishlisted = isInWishlist(product.id)
 
   const priceStr = product.price > 0 
     ? `₹${product.price.toLocaleString('en-IN')}` 
@@ -17,13 +21,11 @@ const ProductCard = ({ product, delay = 0 }) => {
   const handleAddToCart = (e) => {
     e.stopPropagation()
     addToCart(product)
-    // You can also trigger a toast notification here if you have a toast context
   }
 
-  const handleSaveWishlist = (e) => {
+  const handleToggleWishlist = (e) => {
     e.stopPropagation()
-    // Implement wishlist functionality if needed
-    alert('Added to wishlist ❤️')
+    toggleWishlist(product)
   }
 
   return (
@@ -32,14 +34,14 @@ const ProductCard = ({ product, delay = 0 }) => {
       style={{ animationDelay: `${delay}s` }}
       onClick={handleViewDetails}
     >
-      {/* Image / Emoji Container */}
+      {/* Image Container */}
       <div className="product-img-wrap h-48 sm:h-56 flex items-center justify-center bg-black">
-  <img
-  src={product.images ? product.images[0] : product.image}
-  alt={product.name}
-  className="h-full object-contain transition-transform duration-500 group-hover:scale-105"
-/>
-</div>
+        <img
+          src={product.images ? product.images[0] : product.image}
+          alt={product.name}
+          className="h-full object-contain transition-transform duration-500 group-hover:scale-105"
+        />
+      </div>
 
       {/* Content */}
       <div className="p-5">
@@ -48,11 +50,14 @@ const ProductCard = ({ product, delay = 0 }) => {
             {product.name}
           </h3>
           <button 
-            onClick={handleSaveWishlist}
-            className="text-gray-500 hover:text-gold transition-colors flex-shrink-0"
-            aria-label={`Save ${product.name}`}
+            onClick={handleToggleWishlist}
+            className="flex-shrink-0 transition-colors"
+            aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
           >
-            <Heart size={16} />
+            <Heart 
+              size={16} 
+              className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-500 hover:text-red-500'}
+            />
           </button>
         </div>
 
@@ -81,7 +86,6 @@ const ProductCard = ({ product, delay = 0 }) => {
         </div>
       </div>
 
-      {/* Inline styles for animations (if not in global CSS) */}
       <style>{`
         .glass-card {
           background: rgba(255,255,255,0.04);
@@ -117,14 +121,8 @@ const ProductCard = ({ product, delay = 0 }) => {
           box-shadow: 0 0 20px rgba(212,175,55,0.2);
         }
         @keyframes fade-up {
-          from {
-            opacity: 0;
-            transform: translateY(40px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-up {
           animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;

@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Heart } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
 import { products, categories } from '../data/products'
+import { useAuth } from '../contexts/AuthContext'
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeCategory, setActiveCategory] = useState('all')
   const [sizeFilter, setSizeFilter] = useState('all')
   const [priceSort, setPriceSort] = useState('default')
+  const [showOnlyWishlist, setShowOnlyWishlist] = useState(false)
   const [filteredProducts, setFilteredProducts] = useState([])
+  const { wishlist, isAuthenticated } = useAuth()
 
   // Size options
   const sizeOptions = [
@@ -48,6 +52,12 @@ const Products = () => {
       result = result.filter(p => p.size === sizeFilter)
     }
 
+    // Filter by wishlist (only if enabled and user is authenticated)
+    if (showOnlyWishlist && isAuthenticated) {
+      const wishlistIds = new Set(wishlist.map(item => item.id))
+      result = result.filter(p => wishlistIds.has(p.id))
+    }
+
     // Sort by price (custom items have price 0, they go to end for low sort, beginning for high sort)
     if (priceSort === 'low') {
       result.sort((a, b) => {
@@ -66,7 +76,7 @@ const Products = () => {
     }
 
     setFilteredProducts(result)
-  }, [activeCategory, sizeFilter, priceSort])
+  }, [activeCategory, sizeFilter, priceSort, showOnlyWishlist, wishlist, isAuthenticated])
 
   const handleCategoryChange = (categoryId) => {
     setActiveCategory(categoryId)
@@ -87,10 +97,19 @@ const Products = () => {
     setPriceSort(e.target.value)
   }
 
+  const toggleWishlistFilter = () => {
+    if (!isAuthenticated) {
+      // Optional: show toast to login
+      return
+    }
+    setShowOnlyWishlist(!showOnlyWishlist)
+  }
+
   const clearFilters = () => {
     setActiveCategory('all')
     setSizeFilter('all')
     setPriceSort('default')
+    setShowOnlyWishlist(false)
     searchParams.delete('category')
     setSearchParams(searchParams)
   }
@@ -109,12 +128,6 @@ const Products = () => {
 
         {/* Category Filters */}
         <div className="flex flex-wrap justify-center gap-3 mb-10">
-          {/* <button
-            onClick={() => handleCategoryChange('all')}
-            className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`}
-          >
-            All
-          </button> */}
           {categories.map((cat) => (
             <button
               key={cat.id}
@@ -126,7 +139,7 @@ const Products = () => {
           ))}
         </div>
 
-        {/* Size and Sort Filters */}
+        {/* Size, Sort, and Wishlist Filters */}
         <div className="flex flex-wrap justify-center gap-3 mb-10">
           <select
             value={sizeFilter}
@@ -152,7 +165,18 @@ const Products = () => {
             ))}
           </select>
 
-          {(activeCategory !== 'all' || sizeFilter !== 'all' || priceSort !== 'default') && (
+          {/* Wishlist Filter Button */}
+          {isAuthenticated && (
+            <button
+              onClick={toggleWishlistFilter}
+              className={`filter-chip flex items-center gap-2 ${showOnlyWishlist ? 'active' : ''}`}
+            >
+              <Heart size={14} className={showOnlyWishlist ? 'fill-red-500 text-red-500' : ''} />
+              {showOnlyWishlist ? 'Showing Wishlist' : 'Show Wishlist'}
+            </button>
+          )}
+
+          {(activeCategory !== 'all' || sizeFilter !== 'all' || priceSort !== 'default' || showOnlyWishlist) && (
             <button
               onClick={clearFilters}
               className="text-gold text-sm hover:underline px-3"
@@ -166,7 +190,11 @@ const Products = () => {
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
-            <p className="text-gray-400 text-lg">No statues found matching your criteria.</p>
+            <p className="text-gray-400 text-lg">
+              {showOnlyWishlist && isAuthenticated && wishlist.length === 0
+                ? "Your wishlist is empty. Start adding products!"
+                : "No statues found matching your criteria."}
+            </p>
             <button
               onClick={clearFilters}
               className="btn-gold px-6 py-3 rounded-xl font-cinzel text-sm mt-6"
@@ -188,7 +216,6 @@ const Products = () => {
         )}
       </div>
 
-      {/* Inline styles (if not already in global CSS) */}
       <style>{`
         .filter-chip {
           padding: 6px 16px;

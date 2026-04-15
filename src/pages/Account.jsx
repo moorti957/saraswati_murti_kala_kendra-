@@ -1,71 +1,62 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, Heart, ShoppingBag, User, Clock, Trash2 } from 'lucide-react'
+import { Package, Heart, ShoppingBag, User, Trash2 } from 'lucide-react'
 import { useCart } from '../contexts/CartContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
 
 const Account = () => {
-  const { cart } = useCart()
+  const { cart, addToCart } = useCart()
   const { showToast } = useToast()
+  const { 
+    user, 
+    isAuthenticated, 
+    wishlist,           // reactive wishlist from AuthContext
+    removeFromWishlist, 
+    getOrders 
+  } = useAuth()
+  
   const [activeTab, setActiveTab] = useState('orders')
   const [orders, setOrders] = useState([])
-  const [wishlist, setWishlist] = useState([])
 
-  // Load wishlist from localStorage
+  // Load orders only (wishlist is reactive, no local state needed)
   useEffect(() => {
-    const savedWishlist = localStorage.getItem('wishlist')
-    if (savedWishlist) {
-      setWishlist(JSON.parse(savedWishlist))
-    }
-    
-    // Load orders from localStorage (simulated)
-    const savedOrders = localStorage.getItem('orders')
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders))
+    if (isAuthenticated && user) {
+      setOrders(getOrders())
     } else {
-      // Sample order for demo (remove in production)
-      const demoOrders = [
-        {
-          id: 'ORD001',
-          date: '2024-01-15',
-          items: [{ name: 'Sai Baba Blessing', qty: 1, price: 25000 }],
-          total: 25000,
-          status: 'Delivered'
-        },
-        {
-          id: 'ORD002',
-          date: '2024-02-20',
-          items: [{ name: 'Krishna with Flute', qty: 1, price: 32000 }],
-          total: 32000,
-          status: 'Processing'
-        }
-      ]
-      setOrders(demoOrders)
-      localStorage.setItem('orders', JSON.stringify(demoOrders))
+      setOrders([])
     }
-  }, [])
+  }, [isAuthenticated, user, getOrders])
 
-  const handleRemoveFromWishlist = (productId) => {
-    const updated = wishlist.filter(item => item.id !== productId)
-    setWishlist(updated)
-    localStorage.setItem('wishlist', JSON.stringify(updated))
-    showToast('Removed from wishlist', 'info')
+  const handleRemoveFromWishlist = (productId, productName) => {
+    removeFromWishlist(productId)
+    // No need to manually update local state because wishlist from context updates automatically
   }
 
   const handleAddToCartFromWishlist = (product) => {
-    // This would need access to addToCart from CartContext
-    // For now, we'll show a toast and navigate
+    addToCart(product)
     showToast(`${product.name} added to cart`, 'success')
-    // In a full implementation, you would call addToCart(product)
   }
 
   const tabs = [
     { id: 'orders', label: 'Order History', icon: Package },
-    { id: 'saved', label: 'Saved Products', icon: Heart },
+    { id: 'saved', label: 'Wishlist', icon: Heart },
     { id: 'profile', label: 'Profile', icon: User },
   ]
 
   const renderOrdersTab = () => {
+    if (!isAuthenticated) {
+      return (
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4">🔒</div>
+          <p className="text-gray-400">Please login to view your orders.</p>
+          <Link to="/login" className="btn-gold px-6 py-3 rounded-xl font-cinzel text-sm mt-4 inline-block">
+            Login
+          </Link>
+        </div>
+      )
+    }
+
     if (orders.length === 0) {
       return (
         <div className="text-center py-12">
@@ -116,11 +107,23 @@ const Account = () => {
   }
 
   const renderWishlistTab = () => {
+    if (!isAuthenticated) {
+      return (
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4">❤️</div>
+          <p className="text-gray-400">Login to save your favorite products.</p>
+          <Link to="/login" className="btn-gold px-6 py-3 rounded-xl font-cinzel text-sm mt-4 inline-block">
+            Login
+          </Link>
+        </div>
+      )
+    }
+
     if (wishlist.length === 0) {
       return (
         <div className="text-center py-12">
           <div className="text-5xl mb-4">❤️</div>
-          <p className="text-gray-400">No saved products yet.</p>
+          <p className="text-gray-400">Your wishlist is empty. Start adding products!</p>
           <Link to="/products" className="btn-gold px-6 py-3 rounded-xl font-cinzel text-sm mt-4 inline-block">
             Explore Collection
           </Link>
@@ -132,8 +135,12 @@ const Account = () => {
       <div className="grid sm:grid-cols-2 gap-4">
         {wishlist.map((product) => (
           <div key={product.id} className="glass rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-gold/10 flex items-center justify-center text-2xl">
-              {product.emoji}
+            <div className="w-12 h-12 rounded-lg bg-gold/10 flex items-center justify-center">
+              {product.images?.[0] ? (
+                <img src={product.images[0]} alt={product.name} className="h-full object-contain" />
+              ) : (
+                <span className="text-2xl">{product.emoji}</span>
+              )}
             </div>
             <div className="flex-1">
               <h4 className="font-cinzel text-white text-sm font-semibold">{product.name}</h4>
@@ -147,10 +154,10 @@ const Account = () => {
                 onClick={() => handleAddToCartFromWishlist(product)}
                 className="btn-gold px-3 py-1.5 rounded-lg text-xs"
               >
-                Add
+                Add to Cart
               </button>
               <button
-                onClick={() => handleRemoveFromWishlist(product.id)}
+                onClick={() => handleRemoveFromWishlist(product.id, product.name)}
                 className="text-gray-500 hover:text-red-400 transition-colors"
               >
                 <Trash2 size={16} />
@@ -163,14 +170,27 @@ const Account = () => {
   }
 
   const renderProfileTab = () => {
+    if (!isAuthenticated) {
+      return (
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4">👤</div>
+          <p className="text-gray-400 mb-4">Please login to view your profile.</p>
+          <Link to="/login" className="btn-gold px-6 py-3 rounded-xl font-cinzel text-sm inline-block">
+            Login / Sign Up
+          </Link>
+        </div>
+      )
+    }
+
     return (
       <div className="space-y-6">
         <div className="text-center pb-6 border-b border-gold/10">
           <div className="w-20 h-20 rounded-full bg-gold/20 flex items-center justify-center mx-auto mb-4">
             <User size={40} className="text-gold" />
           </div>
-          <h3 className="text-white font-semibold text-lg">Guest User</h3>
-          <p className="text-gray-500 text-sm">Welcome to Saraswati Murti Kala Kendra</p>
+          <h3 className="text-white font-semibold text-lg">{user.name}</h3>
+          <p className="text-gray-400 text-sm">{user.email}</p>
+          <p className="text-gray-500 text-xs mt-2">Member since {new Date(user.createdAt).toLocaleDateString('en-IN')}</p>
         </div>
         
         <div className="space-y-4">
@@ -192,15 +212,6 @@ const Account = () => {
               className="text-gold text-sm hover:underline"
             >
               View Saved →
-            </button>
-          </div>
-          
-          <div className="glass rounded-xl p-4">
-            <p className="text-gray-400 text-sm mb-2">Account Type</p>
-            <p className="text-white text-sm">Guest Account</p>
-            <p className="text-gray-500 text-xs mt-2">Sign up for order tracking and faster checkout</p>
-            <button className="btn-outline px-4 py-2 rounded-lg text-xs mt-3 w-full">
-              Sign Up / Login
             </button>
           </div>
         </div>
@@ -244,7 +255,6 @@ const Account = () => {
         </div>
       </div>
 
-      {/* Inline styles */}
       <style>{`
         .glass {
           background: rgba(255,255,255,0.03);

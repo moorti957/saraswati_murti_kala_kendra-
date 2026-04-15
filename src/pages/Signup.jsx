@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, Mail, Phone, Lock, Eye, EyeOff } from 'lucide-react'
+import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const Signup = () => {
@@ -9,7 +9,6 @@ const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     password: '',
     confirmPassword: ''
   })
@@ -38,7 +37,7 @@ const Signup = () => {
 
     setIsLoading(true)
     try {
-      await signup(formData.name, formData.email, formData.password, formData.phone)
+      await signup(formData.name, formData.email, formData.password)
       navigate('/account')
     } catch (err) {
       setError(err)
@@ -86,21 +85,6 @@ const Signup = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="you@example.com"
-                  className="w-full bg-white/5 border border-gold/20 rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-gray-600 text-sm focus:border-gold/50 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="text-gray-400 text-sm mb-1 block">Phone Number</label>
-              <div className="relative">
-                <Phone size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                <input
-                  type="tel"
-                  id="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+91 XXXXX XXXXX"
                   className="w-full bg-white/5 border border-gold/20 rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-gray-600 text-sm focus:border-gold/50 focus:outline-none"
                 />
               </div>

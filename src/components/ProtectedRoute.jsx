@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
-  
   if (loading) {
     return (
       <div className="pt-32 text-center">
@@ -12,7 +11,6 @@ const ProtectedRoute = ({ children }) => {
       </div>
     )
   }
-  
   return isAuthenticated ? children : <Navigate to="/login" replace />
 }
 
