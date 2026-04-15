@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Gem, Palette, Search, Award, Clock, Users, MapPin, Truck } from 'lucide-react'
-import workshop_img from "../assets/images/8PM.png";
+import workshop_img from "../assets/images/8pm.png";
 import target_img from "../assets/images/target.png";
 import flw from '../assets/images/flw.png'
 
