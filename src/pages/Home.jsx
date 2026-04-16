@@ -168,7 +168,7 @@ const Home = () => {
   {/* Image */}
   <img
     src={Krishna_6}
-    alt="Sai Baba"
+    alt="Krishna marble murti handmade Rajasthan"
     className="absolute inset-0 w-full h-full object-contain p-1"
   />
 
