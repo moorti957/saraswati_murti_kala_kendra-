@@ -117,13 +117,13 @@ const Home = () => {
                   <span className="text-gold-light text-xs tracking-widest uppercase">Handcrafted Since 1985</span>
                 </div>
                 <h1 className="font-cinzel text-4xl sm:text-5xl lg:text-7xl font-bold leading-tight">
-                  <span className="text-white">Divine</span>
+                  <span className="text-white">Saraswati</span>
                   <br />
                   <span className="text-[#D4AF37] drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]">
-  Marble
+  Murti
 </span>
                   <br />
-                  <span className="text-white">Creations</span>
+                  <span className="text-white">Kala Kendra</span>
                 </h1>
               </div>
 
